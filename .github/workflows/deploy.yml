@@ -1,0 +1,33 @@
+name: Build Micro-Framework
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-and-zip:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: pdo_sqlite, sqlite3
+          
+      - name: Verify PHP Syntax
+        run: find . -name "*.php" -print0 | xargs -0 -n1 php -l
+
+      - name: Create Low-Inode Deployment Zip
+        run: |
+          zip -r deployment_build.zip . -x "*.git*" "*node_modules*" "*vendor*" "*tests*" "playwright.config.js" "composer.json" "package.json" "*.sqlite" "README.md"
+
+      - name: Upload Deployment Zip as Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: deployment-package
+          path: deployment_build.zip
