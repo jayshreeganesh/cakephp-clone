@@ -1,0 +1,23 @@
+[
+    {
+        "name": "Micro-Framework Guide",
+        "sku": "BOOK-MVC-001",
+        "description": "Learn to build high-performance MVC apps from scratch.",
+        "price": 29.99,
+        "stock": 100
+    },
+    {
+        "name": "Cloud Deployment Kit",
+        "sku": "KIT-DEP-002",
+        "description": "Perfect for Aeon and InfinityFree hosting.",
+        "price": 49.99,
+        "stock": 50
+    },
+    {
+        "name": "Pro Developer Setup",
+        "sku": "PRO-DEV-003",
+        "description": "Advanced tools and configurations.",
+        "price": 99.99,
+        "stock": 15
+    }
+]

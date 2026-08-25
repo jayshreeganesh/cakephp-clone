@@ -1,79 +1,95 @@
 <?php
 namespace App\Controller;
-
-class ProductsController extends AppController {
-
+use CakeCore\Controller;
+use App\Model\ProductsTable;
+use PDO;
+class ProductsController extends Controller {
+    private $productsTable;
+    public function __construct() {
+        if (session_status() === PHP_SESSION_NONE) { session_start(); }
+        $uri = $_SERVER['REQUEST_URI'] ?? '/';
+        if (!isset($_SESSION['user_id'])) {
+            if (strpos($uri, '/login') === false && strpos($uri, '/register') === false) {
+                header('Location: /login'); exit;
+            }
+        }
+        $this->productsTable = new ProductsTable();
+    }
     public function index() {
-        $products = $this->Products->find('all', ['order' => 'id DESC']);
-        $this->set(compact('products'));
-        $this->set('title', 'Products (CakePHP Clone)');
-    }
-
-    public function view(?int $id = null) {
-        $product = $this->Products->get($id);
-        if (!$product) {
-            $this->Flash->error('Product not found.');
-            return $this->redirect(['action' => 'index']);
-        }
-        $this->set(compact('product'));
-        $this->set('title', 'Product: ' . $product->name);
-    }
-
-    public function add() {
-        $product = $this->Products->newEmptyEntity();
-        if ($this->request->is('post')) {
-            $data = $this->request->getData();
-            if (empty($data['name']) || empty($data['sku']) || ($data['price'] ?? '') === '') {
-                $this->Flash->error('Please fill in all required fields (Name, SKU, Price).');
-            } else {
-                $product = $this->Products->patchEntity($product, $data);
-                if ($this->Products->save($product)) {
-                    $this->Flash->success('The product has been saved.');
-                    return $this->redirect(['action' => 'index']);
-                }
-                $this->Flash->error('Unable to add the product.');
-            }
-        }
-        $this->set(compact('product'));
-        $this->set('title', 'Add Product');
-    }
-
-    public function edit(?int $id = null) {
-        $product = $this->Products->get($id);
-        if (!$product) {
-            $this->Flash->error('Product not found.');
-            return $this->redirect(['action' => 'index']);
-        }
-
-        if ($this->request->is(['post', 'put'])) {
-            $data = $this->request->getData();
-            if (empty($data['name']) || empty($data['sku']) || ($data['price'] ?? '') === '') {
-                $this->Flash->error('Please fill in all required fields.');
-            } else {
-                $this->Products->patchEntity($product, $data);
-                if ($this->Products->save($product)) {
-                    $this->Flash->success('The product has been updated.');
-                    return $this->redirect(['action' => 'index']);
-                }
-                $this->Flash->error('Unable to update the product.');
-            }
-        }
-
-        $this->set(compact('product'));
-        $this->set('title', 'Edit Product: ' . $product->name);
-    }
-
-    public function delete(?int $id = null) {
-        $product = $this->Products->get($id);
-        if ($product) {
-            if ($this->Products->delete($product)) {
-                $this->Flash->success('The product has been deleted.');
-            } else {
-                $this->Flash->error('Could not delete the product.');
-            }
+        $q = $_GET['q'] ?? '';
+        $sort = $_GET['sort'] ?? 'id';
+        $dir = $_GET['dir'] ?? 'desc';
+        $pdo = \CakeCore\Database::connect();
+        
+        if (($_SESSION['role'] ?? 'user') === 'admin') {
+            $stmt = $pdo->prepare("SELECT * FROM products WHERE name LIKE ? OR sku LIKE ? OR description LIKE ? ORDER BY $sort $dir");
+            $stmt->execute(["%$q%", "%$q%", "%$q%"]);
         } else {
-            $this->Flash->error('Product not found.');
+            $stmt = $pdo->prepare("SELECT * FROM products WHERE user_id = ? AND (name LIKE ? OR sku LIKE ? OR description LIKE ?) ORDER BY $sort $dir");
+            $stmt->execute([$_SESSION['user_id'], "%$q%", "%$q%", "%$q%"]);
         }
-        return $this->redirect(['action' => 'index']);
+        $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $this->render('Products/index', ['products' => $products, 'q' => $q, 'sort' => $sort, 'dir' => $dir]);
+    }
+    public function export() {
+        $q = $_GET['q'] ?? '';
+        $format = $_GET['format'] ?? 'csv';
+        $pdo = \CakeCore\Database::connect();
+        if (($_SESSION['role'] ?? 'user') === 'admin') {
+            $stmt = $pdo->prepare("SELECT * FROM products WHERE name LIKE ? OR sku LIKE ? OR description LIKE ? ORDER BY id DESC");
+            $stmt->execute(["%$q%", "%$q%", "%$q%"]);
+        } else {
+            $stmt = $pdo->prepare("SELECT * FROM products WHERE user_id = ? AND (name LIKE ? OR sku LIKE ? OR description LIKE ?) ORDER BY id DESC");
+            $stmt->execute([$_SESSION['user_id'], "%$q%", "%$q%", "%$q%"]);
+        }
+        $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        if ($format === 'json') {
+            header('Content-Type: application/json'); header('Content-Disposition: attachment; filename="products.json"');
+            echo json_encode($products, JSON_PRETTY_PRINT); exit;
+        }
+        if ($format === 'csv') {
+            header('Content-Type: text/csv'); header('Content-Disposition: attachment; filename="products.csv"');
+            $output = fopen('php://output', 'w');
+            fputcsv($output, ['ID', 'User ID', 'Name', 'SKU', 'Description', 'Price', 'Stock']);
+            foreach ($products as $row) { fputcsv($output, [$row['id'], $row['user_id'] ?? '', $row['name'], $row['sku'], $row['description'], $row['price'], $row['stock']]); }
+            fclose($output); exit;
+        }
+    }
+    public function add() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $data = $_POST;
+            $data['user_id'] = $_SESSION['user_id'];
+            if (empty($data['name']) || empty($data['sku']) || empty($data['price'])) {
+                $_SESSION['flash_error'] = 'Required fields missing.';
+                $this->redirect('/products/add');
+            }
+            if ($this->productsTable->save($data)) {
+                $_SESSION['flash_success'] = 'Product has been saved.';
+                $this->redirect('/products');
+            }
+        }
+        $this->render('Products/add', ['title' => 'Add Product']);
+    }
+    public function edit($id) {
+        $product = $this->productsTable->get($id);
+        if (!$product || (($_SESSION['role'] ?? 'user') !== 'admin' && $product['user_id'] != $_SESSION['user_id'])) {
+            $this->redirect('/products');
+        }
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $data = $_POST;
+            $data['user_id'] = $product['user_id']; // prevent hijacking
+            if ($this->productsTable->update($id, $data)) {
+                $_SESSION['flash_success'] = 'Product updated.';
+                $this->redirect('/products');
+            }
+        }
+        $this->render('Products/edit', ['product' => $product]);
+    }
+    public function delete($id) {
+        $product = $this->productsTable->get($id);
+        if ($product && (($_SESSION['role'] ?? 'user') === 'admin' || $product['user_id'] == $_SESSION['user_id'])) {
+            $this->productsTable->delete($id);
+        }
+        $this->redirect('/products');
     }
 }

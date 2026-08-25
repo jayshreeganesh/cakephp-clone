@@ -1,27 +1,67 @@
-<?php
-use CakeCore\Router;
-?>
 <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
     <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
             <h1 class="text-2xl font-bold text-slate-800">Products Catalog</h1>
-            <p class="text-sm text-slate-500 mt-1">CakePHP Table & Entity ORM Management</p>
+            <p class="text-sm text-slate-500 mt-1">Laravel-style MVC & Eloquent Active Record</p>
         </div>
-        <a href="<?= Router::url(['controller' => 'Products', 'action' => 'add']) ?>" class="inline-flex items-center px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-sm font-medium rounded-lg shadow-sm transition">
+        <div class="flex gap-2">
+            <?php if(isset($_SESSION['user_id'])): ?>
+                <span class="px-4 py-2 text-sm text-slate-600 font-bold bg-slate-100 rounded-lg">Welcome, <?= htmlspecialchars($_SESSION['user_name']) ?></span>
+                <a href="<?= \CakeCore\Router::url('logout') ?>" class="inline-flex items-center px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-sm font-medium rounded-lg shadow-sm transition">Logout</a>
+            <?php else: ?>
+                <a href="/login" class="inline-flex items-center px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-sm font-medium rounded-lg shadow-sm transition">Login</a>
+                <a href="/register" class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition">Register</a>
+            <?php endif; ?>
+        </div>
+    </div>
+    <?php if (!empty($products) || !empty($q)): ?>
+    <!-- Search Bar -->
+    <div class="px-6 py-4 border-b border-slate-100 bg-slate-50">
+        <form method="GET" action="/products" class="flex gap-2">
+            <input type="text" name="q" value="<?= htmlspecialchars($q ?? '') ?>" placeholder="Search products..." class="flex-1 px-4 py-2 border rounded-lg">
+            <button type="submit" class="px-4 py-2 bg-slate-800 text-white rounded-lg">Search</button>
+            <?php if(!empty($q)): ?><a href="<?= \CakeCore\Router::url('products') ?>" class="px-4 py-2 bg-slate-200 rounded-lg">Clear</a><?php endif; ?>
+        </form>
+    </div>
+    <?php endif; ?>
+    <!-- Action Buttons -->
+    <div class="px-6 pb-4 bg-slate-50 border-b border-slate-100 flex flex-wrap gap-2 justify-between items-center">
+        <div class="flex gap-2">
+            <?php if (!empty($products)): ?>
+                <a href="<?= \CakeCore\Router::url('products/export') ?>?format=csv&q=<?= urlencode($q ?? '') ?>" class="inline-flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg shadow-sm transition">
+                    <i class="fa-solid fa-file-csv mr-2"></i> Export CSV (Excel)
+                </a>
+                <a href="<?= \CakeCore\Router::url('products/export') ?>?format=json&q=<?= urlencode($q ?? '') ?>" class="inline-flex items-center px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-sm font-medium rounded-lg shadow-sm transition">
+                    <i class="fa-solid fa-code mr-2"></i> Export JSON
+                </a>
+            <?php endif; ?>
+        </div>
+        <?php if (!empty($products) || !empty($q)): ?>
+        <a href="<?= \CakeCore\Router::url('products/create') ?>" class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition">
             <i class="fa-solid fa-plus mr-2"></i> Add Product
         </a>
+        <?php endif; ?>
     </div>
+        
 
     <?php if (empty($products)): ?>
         <div class="p-12 text-center">
-            <div class="w-16 h-16 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
-                <i class="fa-solid fa-cake-candles"></i>
+            <div class="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                <i class="fa-brands fa-laravel"></i>
             </div>
-            <h3 class="text-lg font-semibold text-slate-700">No products found</h3>
-            <p class="text-slate-500 text-sm mt-1 mb-6">Create your first product entity to test the CRUD functionality.</p>
-            <a href="<?= Router::url(['controller' => 'Products', 'action' => 'add']) ?>" class="inline-flex items-center px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-sm font-medium rounded-lg shadow-sm transition">
-                <i class="fa-solid fa-plus mr-2"></i> Add Product
-            </a>
+                        <?php if (!empty($q)): ?>
+                <h3 class="text-lg font-semibold text-slate-700">No results found for "<?= htmlspecialchars($q) ?>"</h3>
+                <p class="text-slate-500 text-sm mt-1 mb-6">Try adjusting your search query or clear your filters.</p>
+                <a href="<?= \CakeCore\Router::url('products') ?>" class="inline-flex items-center px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-sm font-medium rounded-lg shadow-sm transition">
+                    Clear Search
+                </a>
+            <?php else: ?>
+                <h3 class="text-lg font-semibold text-slate-700">No products found</h3>
+                <p class="text-slate-500 text-sm mt-1 mb-6">Create your first product to get started.</p>
+                <a href="<?= \CakeCore\Router::url('products/create') ?>" class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition">
+                    <i class="fa-solid fa-plus mr-2"></i> Create Product
+                </a>
+            <?php endif; ?>
         </div>
     <?php else: ?>
         <div class="overflow-x-auto">
@@ -29,9 +69,9 @@ use CakeCore\Router;
                 <thead>
                     <tr class="bg-slate-50 border-b border-slate-200 text-xs font-semibold uppercase text-slate-500">
                         <th class="py-3.5 px-6">ID</th>
-                        <th class="py-3.5 px-6">Product</th>
+                        <th class="py-3.5 px-6"><a href="?sort=name&dir=<?= ($sort=='name' && $dir=='asc') ? 'desc' : 'asc' ?>&q=<?= $q ?? '' ?>">Product <i class="fa-solid fa-sort ml-1"></i></a></th>
                         <th class="py-3.5 px-6">SKU</th>
-                        <th class="py-3.5 px-6">Price</th>
+                        <th class="py-3.5 px-6"><a href="?sort=price&dir=<?= ($sort=='price' && $dir=='asc') ? 'desc' : 'asc' ?>&q=<?= $q ?? '' ?>">Price <i class="fa-solid fa-sort ml-1"></i></a></th>
                         <th class="py-3.5 px-6">Stock</th>
                         <th class="py-3.5 px-6 text-right">Actions</th>
                     </tr>
@@ -39,25 +79,25 @@ use CakeCore\Router;
                 <tbody class="divide-y divide-slate-100 text-sm">
                     <?php foreach ($products as $product): ?>
                         <tr class="hover:bg-slate-50/75 transition">
-                            <td class="py-4 px-6 font-medium text-slate-400">#<?= $product->id ?></td>
+                            <td class="py-4 px-6 font-medium text-slate-400">#<?= $product['id'] ?></td>
                             <td class="py-4 px-6">
-                                <a href="<?= Router::url(['controller' => 'Products', 'action' => 'view', $product->id]) ?>" class="font-semibold text-slate-800 hover:text-rose-600 transition">
-                                    <?= htmlspecialchars($product->name) ?>
+                                <a href="<?= \CakeCore\Router::url('products/' . $product['id']) ?>" class="font-semibold text-slate-800 hover:text-red-600 transition">
+                                    <?= htmlspecialchars($product['name']) ?>
                                 </a>
-                                <?php if (!empty($product->description)): ?>
-                                    <p class="text-xs text-slate-400 mt-0.5 truncate max-w-xs"><?= htmlspecialchars($product->description) ?></p>
+                                <?php if (!empty($product['description'])): ?>
+                                    <p class="text-xs text-slate-400 mt-0.5 truncate max-w-xs"><?= htmlspecialchars($product['description']) ?></p>
                                 <?php endif; ?>
                             </td>
-                            <td class="py-4 px-6 font-mono text-xs text-slate-600 bg-slate-50/50 rounded inline-block my-3"><?= htmlspecialchars($product->sku) ?></td>
-                            <td class="py-4 px-6 font-semibold text-slate-900">$<?= number_format((float)$product->price, 2) ?></td>
+                            <td class="py-4 px-6 font-mono text-xs text-slate-600 bg-slate-50/50 rounded inline-block my-3"><?= htmlspecialchars($product['sku']) ?></td>
+                            <td class="py-4 px-6 font-semibold text-slate-900">$<?= number_format((float)$product['price'], 2) ?></td>
                             <td class="py-4 px-6">
-                                <?php if ($product->stock > 10): ?>
+                                <?php if ($product['stock'] > 10): ?>
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
-                                        <?= $product->stock ?> in stock
+                                        <?= $product['stock'] ?> in stock
                                     </span>
-                                <?php elseif ($product->stock > 0): ?>
+                                <?php elseif ($product['stock'] > 0): ?>
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
-                                        Low stock (<?= $product->stock ?>)
+                                        Low stock (<?= $product['stock'] ?>)
                                     </span>
                                 <?php else: ?>
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800">
@@ -66,15 +106,18 @@ use CakeCore\Router;
                                 <?php endif; ?>
                             </td>
                             <td class="py-4 px-6 text-right space-x-2 whitespace-nowrap">
-                                <a href="<?= Router::url(['controller' => 'Products', 'action' => 'view', $product->id]) ?>" class="inline-flex items-center p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded transition" title="View">
+                                <a href="<?= \CakeCore\Router::url('products/' . $product['id']) ?>" class="inline-flex items-center p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded transition" title="Show">
                                     <i class="fa-regular fa-eye"></i>
                                 </a>
-                                <a href="<?= Router::url(['controller' => 'Products', 'action' => 'edit', $product->id]) ?>" class="inline-flex items-center p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded transition" title="Edit">
+                                <a href="<?= \CakeCore\Router::url('products/' . $product['id'] . '/edit') ?>" class="inline-flex items-center p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded transition" title="Edit">
                                     <i class="fa-regular fa-pen-to-square"></i>
                                 </a>
-                                <a href="<?= Router::url(['controller' => 'Products', 'action' => 'delete', $product->id]) ?>" onclick="return confirm('Are you sure you want to delete this product?');" class="inline-flex items-center p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded transition" title="Delete">
-                                    <i class="fa-regular fa-trash-can"></i>
-                                </a>
+                                <form action="<?= \CakeCore\Router::url('products/' . $product['id'] . '/delete') ?>" method="POST" class="inline-block" onsubmit="return confirm('Delete this product?');">
+                                    <?= csrf_field() ?>
+                                    <button type="submit" class="inline-flex items-center p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded transition" title="Delete">
+                                        <i class="fa-regular fa-trash-can"></i>
+                                    </button>
+                                </form>
                             </td>
                         </tr>
                     <?php endforeach; ?>
