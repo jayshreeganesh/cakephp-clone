@@ -15,23 +15,31 @@ class ProductsController extends Controller {
         }
         $this->productsTable = new ProductsTable();
     }
-    public function index() {
+        public function index() {
         $q = $_GET['q'] ?? '';
         $sort = $_GET['sort'] ?? 'id';
         $dir = $_GET['dir'] ?? 'desc';
-        $pdo = \CakeCore\Database::connect();
+        $trash = isset($_GET['trash']) && $_GET['trash'] == 1;
+
+        $db = Database::connect();
         
-        if (($_SESSION['role'] ?? 'user') === 'admin') {
-            $stmt = $pdo->prepare("SELECT * FROM products WHERE name LIKE ? OR sku LIKE ? OR description LIKE ? ORDER BY $sort $dir");
+        $trashCond = $trash ? "products.deleted_at IS NOT NULL" : "products.deleted_at IS NULL";
+
+        if ($this->Session->read('role') === 'admin') {
+            $stmt = $db->prepare("SELECT products.*, users.email as creator_email FROM products LEFT JOIN users ON products.user_id = users.id WHERE $trashCond AND (products.name LIKE ? OR products.sku LIKE ? OR products.description LIKE ?) ORDER BY $sort $dir");
             $stmt->execute(["%$q%", "%$q%", "%$q%"]);
         } else {
-            $stmt = $pdo->prepare("SELECT * FROM products WHERE user_id = ? AND (name LIKE ? OR sku LIKE ? OR description LIKE ?) ORDER BY $sort $dir");
-            $stmt->execute([$_SESSION['user_id'], "%$q%", "%$q%", "%$q%"]);
+            $stmt = $db->prepare("SELECT * FROM products WHERE user_id = ? AND $trashCond AND (name LIKE ? OR sku LIKE ? OR description LIKE ?) ORDER BY $sort $dir");
+            $stmt->execute([$this->Session->read('user_id'), "%$q%", "%$q%", "%$q%"]);
         }
-        $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        $this->render('Products/index', ['products' => $products, 'q' => $q, 'sort' => $sort, 'dir' => $dir]);
+
+        $this->set('products', $stmt->fetchAll(PDO::FETCH_ASSOC));
+        $this->set('q', $q);
+        $this->set('sort', $sort);
+        $this->set('dir', $dir);
+        $this->set('trash', $trash);
     }
-    public function export() {
+public function export() {
         $q = $_GET['q'] ?? '';
         $format = $_GET['format'] ?? 'csv';
         $pdo = \CakeCore\Database::connect();
@@ -85,11 +93,51 @@ class ProductsController extends Controller {
         }
         $this->render('Products/edit', ['product' => $product]);
     }
-    public function delete($id) {
-        $product = $this->productsTable->get($id);
-        if ($product && (($_SESSION['role'] ?? 'user') === 'admin' || $product['user_id'] == $_SESSION['user_id'])) {
-            $this->productsTable->delete($id);
+        public function delete($id) {
+        $db = Database::connect();
+        $stmt = $db->prepare("SELECT * FROM products WHERE id = ?");
+        $stmt->execute([$id]);
+        $prod = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($prod && ($this->Session->read('role') === 'admin' || $prod['user_id'] == $this->Session->read('user_id'))) {
+            $db->prepare("UPDATE products SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")->execute([$id]);
         }
+        $this->redirect('/products');
+    }
+
+    public function forceDelete($id) {
+        $db = Database::connect();
+        $stmt = $db->prepare("SELECT * FROM products WHERE id = ?");
+        $stmt->execute([$id]);
+        $prod = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($prod && ($this->Session->read('role') === 'admin' || $prod['user_id'] == $this->Session->read('user_id'))) {
+            $db->prepare("DELETE FROM products WHERE id = ?")->execute([$id]);
+        }
+        $this->redirect('/products?trash=1');
+    }
+
+    public function restore($id) {
+        $db = Database::connect();
+        $stmt = $db->prepare("SELECT * FROM products WHERE id = ?");
+        $stmt->execute([$id]);
+        $prod = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($prod && ($this->Session->read('role') === 'admin' || $prod['user_id'] == $this->Session->read('user_id'))) {
+            $db->prepare("UPDATE products SET deleted_at = NULL WHERE id = ?")->execute([$id]);
+        }
+        $this->redirect('/products?trash=1');
+    }
+
+    public function toggleActive($id) {
+        $db = Database::connect();
+        $stmt = $db->prepare("SELECT * FROM products WHERE id = ?");
+        $stmt->execute([$id]);
+        $prod = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($prod && ($this->Session->read('role') === 'admin' || $prod['user_id'] == $this->Session->read('user_id'))) {
+            $newStatus = ($prod['is_active'] ?? 1) ? 0 : 1;
+            $db->prepare("UPDATE products SET is_active = ? WHERE id = ?")->execute([$newStatus, $id]);
+        }
+        $this->redirect('/products');
+    }
+}
         $this->redirect('/products');
     }
 }
