@@ -1,5 +1,7 @@
 <?php
 session_start();
+if (file_exists(__DIR__ . '/install.lock') && ($_GET['step'] ?? '') != '3') { die('<h2 style="text-align:center;margin-top:100px;">Already installed. Delete install.lock to re-run.</h2>'); }
+
 
 $configFile = __DIR__ . '/config/database.php';
 
@@ -35,13 +37,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step == 2) {
         }
 
         // Run Migrations
-        $pdo->exec("CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER DEFAULT 1, name TEXT, sku TEXT, description TEXT, price REAL, stock INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)");
+        $pdo->exec("CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER DEFAULT 1, name TEXT, sku TEXT, description TEXT, price REAL, stock INTEGER DEFAULT 0, is_active INTEGER DEFAULT 1, deleted_at DATETIME DEFAULT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)");
         $pdo->exec("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT UNIQUE, password TEXT, role TEXT DEFAULT 'user')");
 
         // Save Config
         if (!is_dir(__DIR__ . '/../config')) { mkdir(__DIR__ . '/../config'); }
         $configContent = "<?php\nreturn [\n    'driver' => '$driver',\n    'host' => '$host',\n    'port' => '$port',\n    'database' => '$dbname',\n    'username' => '$user',\n    'password' => '$pass'\n];\n";
         file_put_contents($configFile, $configContent);
+        file_put_contents(__DIR__ . '/install.lock', 'Installed');
 
         header("Location: /install.php?step=3");
         exit;
