@@ -1,9 +1,9 @@
 <?php
 namespace App\Controller;
-use CakeCore\Controller;
+
 use App\Model\ProductsTable;
 use PDO;
-class ProductsController extends Controller {
+class ProductsController extends AppController {
     private $productsTable;
     public function __construct() {
         if (session_status() === PHP_SESSION_NONE) { session_start(); }

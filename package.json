@@ -1,0 +1,23 @@
+{
+  "name": "cakephp-clone",
+  "version": "1.0.0",
+  "description": "A lightweight CakePHP 4/5 style MVC CRUD application crafted specifically for shared/free hosting environments (e.g. **InfinityFree**, **Aeon**, cPanel) where strict inode (file count) limits exist.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jayshreeganesh/cakephp-clone.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jayshreeganesh/cakephp-clone/issues"
+  },
+  "homepage": "https://github.com/jayshreeganesh/cakephp-clone#readme",
+  "dependencies": {
+    "playwright": "^1.62.1"
+  }
+}

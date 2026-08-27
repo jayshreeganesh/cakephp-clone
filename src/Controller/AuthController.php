@@ -1,8 +1,8 @@
 <?php
 namespace App\Controller;
-use CakeCore\Controller;
+
 use PDO;
-class AuthController extends Controller {
+class AuthController extends AppController {
     public function login() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $email = $_POST['email'] ?? '';
@@ -20,7 +20,8 @@ class AuthController extends Controller {
             $_SESSION['flash_error'] = 'Invalid credentials';
             $this->redirect('/login');
         }
-        $this->render('Auth/login', ['title' => 'Login']);
+        $this->set('title', 'Login');
+        $this->render('login');
     }
     public function register() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -39,7 +40,8 @@ class AuthController extends Controller {
             $_SESSION['flash_error'] = 'Registration failed';
             $this->redirect('/register');
         }
-        $this->render('Auth/register', ['title' => 'Register']);
+        $this->set('title', 'Register');
+        $this->render('register');
     }
     public function logout() { session_destroy(); $this->redirect('/login'); }
 }
