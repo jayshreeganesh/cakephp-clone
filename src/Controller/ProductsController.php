@@ -138,6 +138,3 @@ public function export() {
         $this->redirect('/products');
     }
 }
-        $this->redirect('/products');
-    }
-}
