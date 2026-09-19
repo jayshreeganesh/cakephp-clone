@@ -13,6 +13,23 @@ if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
     session_start();
 }
 
+
+class Database {
+    public static function connect(): PDO {
+        $config = Configure::read('Datasources.default');
+        $dbPath = $config['sqlite_path'] ?? (ROOT . '/config/database.sqlite');
+        if (($config['className'] ?? '') === 'Cake\Database\Connection' && !isset($config['sqlite_path'])) {
+            $dsn = "mysql:host={$config['host']};port={$config['port']};dbname={$config['database']};charset=utf8mb4";
+            $pdo = new PDO($dsn, $config['username'], $config['password']);
+        } else {
+            $pdo = new PDO('sqlite:' . $dbPath);
+        }
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+        return $pdo;
+    }
+}
+
 class Configure {
     private static array $data = [];
     public static function write($key, $val) { self::$data[$key] = $val; }
@@ -250,3 +267,4 @@ class Router {
         $instance->render();
     }
 }
+
