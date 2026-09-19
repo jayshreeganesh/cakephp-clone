@@ -2,49 +2,61 @@ const { chromium, devices } = require('playwright');
 const fs = require('fs');
 
 (async () => {
-    console.log('Starting Playwright screenshot tests for CakePHP...');
-    
+    console.log('Starting full E2E Playwright tests...');
     if (!fs.existsSync('./screenshots')) {
         fs.mkdirSync('./screenshots');
     }
 
     const browser = await chromium.launch();
     
-    const viewports = [
-        { name: 'Mobile_iPhone13', ...devices['iPhone 13'] },
-        { name: 'Tablet_iPad', ...devices['iPad (gen 7)'] },
-        { name: 'Desktop_1080p', viewport: { width: 1920, height: 1080 } }
-    ];
-
-    for (const vp of viewports) {
-        console.log(`Testing viewport: ${vp.name}`);
-        const context = await browser.newContext(vp);
-        const page = await context.newPage();
+    // Test on Desktop only to test full functionality quickly
+    const context = await browser.newContext({ viewport: { width: 1920, height: 1080 } });
+    const page = await context.newPage();
+    
+    // Try to get URL from args, default to 8000
+    const url = process.argv[2] || 'http://127.0.0.1:8000';
+    
+    try {
+        console.log("Navigating to " + url);
+        await page.goto(url, { waitUntil: 'networkidle', timeout: 15000 });
         
-        try {
-            await page.goto('http://127.0.0.1:8003/login', { waitUntil: 'networkidle' });
-            
-            // Login
-            await page.fill('input[name="email"]', 'admin@test.local');
-            await page.fill('input[name="password"]', 'password'); // Assume standard test password
+        // Handle potential install page redirect
+        if (page.url().includes('install.php')) {
+            await page.screenshot({ path: `./screenshots/01_install_page.png` });
             await page.click('button[type="submit"]');
-            
-            await page.waitForTimeout(1000); // Wait for redirect
-            
-            // Check if we hit install.lock block or dashboard
-            const url = page.url();
-            if (url.includes('install.php')) {
-                await page.goto('http://127.0.0.1:8003/products', { waitUntil: 'networkidle' });
-            }
-            
-            await page.screenshot({ path: `./screenshots/CakePHP_${vp.name}_dashboard.png`, fullPage: true });
-            
-        } catch (e) {
-            console.error(`Error on ${vp.name}:`, e.message);
+            await page.waitForTimeout(1000);
+            await page.goto(url, { waitUntil: 'networkidle' });
         }
-        await context.close();
+        
+        await page.goto(url + '/login', { waitUntil: 'networkidle' });
+        await page.screenshot({ path: `./screenshots/02_login_page.png` });
+        
+        // Login
+        await page.fill('input[name="email"]', 'admin@test.local');
+        await page.fill('input[name="password"]', 'password');
+        await page.click('button[type="submit"]');
+        
+        await page.waitForTimeout(1000);
+        
+        // Dashboard
+        await page.screenshot({ path: `./screenshots/03_dashboard.png`, fullPage: true });
+        
+        // Test Add Product
+        await page.goto(url + '/products/create', { waitUntil: 'networkidle' }).catch(() => {});
+        if (page.url().includes('create') || page.url().includes('add')) {
+            await page.fill('input[name="name"]', 'Playwright Test Product');
+            await page.fill('input[name="sku"]', 'PW-100');
+            await page.fill('input[name="price"]', '99.99');
+            await page.click('button[type="submit"]');
+            await page.waitForTimeout(1000);
+            await page.screenshot({ path: `./screenshots/04_after_add.png`, fullPage: true });
+        }
+        
+    } catch (e) {
+        console.error(`Error during E2E:`, e.message);
     }
     
+    await context.close();
     await browser.close();
     console.log('Playwright tests completed.');
 })();

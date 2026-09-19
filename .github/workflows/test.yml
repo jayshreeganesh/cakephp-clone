@@ -1,0 +1,53 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: pdo_sqlite, sqlite3
+          tools: phpunit:10.5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Verify PHP Syntax
+        run: find . -name "*.php" -print0 | xargs -0 -n1 php -l
+
+      - name: Run PHPUnit Tests
+        run: phpunit tests
+
+      - name: Install Playwright
+        run: |
+          npm init -y
+          npm install playwright
+          npx playwright install --with-deps chromium
+
+      - name: Start PHP Server
+        run: php -S 127.0.0.1:8003 server.php &
+
+      - name: Wait for server
+        run: sleep 3
+
+      - name: Run Playwright Tests
+        run: node tests.js http://127.0.0.1:8003
+        
+      - name: Upload Screenshots
+        uses: actions/upload-artifact@v3
+        with:
+          name: screenshots-${{ github.sha }}
+          path: screenshots/
