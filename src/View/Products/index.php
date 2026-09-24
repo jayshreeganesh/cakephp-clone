@@ -46,11 +46,18 @@
                 </a>
             <?php endif; ?>
         </div>
-        <?php if (!empty($products) || !empty($q)): ?>
-        <a href="<?= \CakeCore\Router::url('products/create') ?>" class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition">
-            <i class="fa-solid fa-plus mr-2"></i> Add Product
+        <?php if (!isset($trash) || !$trash): ?>
+        <a href="<?= \CakeCore\Router::url('products') ?>?trash=1" class="inline-flex items-center px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-sm font-medium rounded-lg shadow-sm transition">
+            <i class="fa-solid fa-trash mr-2"></i> View Trash
+        </a>
+        <?php else: ?>
+        <a href="<?= \CakeCore\Router::url('products') ?>" class="inline-flex items-center px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-sm font-medium rounded-lg shadow-sm transition">
+            <i class="fa-solid fa-arrow-left mr-2"></i> Back to Products
         </a>
         <?php endif; ?>
+        <a href="<?= \CakeCore\Router::url('products/add') ?>" class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition">
+            <i class="fa-solid fa-plus mr-2"></i> Add Product
+        </a>
     </div>
         
 
@@ -68,7 +75,7 @@
             <?php else: ?>
                 <h3 class="text-lg font-semibold text-slate-700">No products found</h3>
                 <p class="text-slate-500 text-sm mt-1 mb-6">Create your first product to get started.</p>
-                <a href="<?= \CakeCore\Router::url('products/create') ?>" class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition">
+                <a href="<?= \CakeCore\Router::url('products/add') ?>" class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition">
                     <i class="fa-solid fa-plus mr-2"></i> Create Product
                 </a>
             <?php endif; ?>
@@ -167,3 +174,5 @@
         </div>
     <?php endif; ?>
 </div>
+
+

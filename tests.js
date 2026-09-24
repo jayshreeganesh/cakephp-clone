@@ -38,17 +38,18 @@ const fs = require('fs');
         }
         
         // 2. Register
+        const testEmail = `admin_e2e_${Date.now()}@test.local`;
         await page.goto(url + '/register', { waitUntil: 'networkidle' });
-        await screenshot('register_page');
         await page.fill('input[name="name"]', 'Test Admin');
-        await page.fill('input[name="email"]', 'admin_e2e@test.local');
+        await page.fill('input[name="email"]', testEmail);
         await page.fill('input[name="password"]', 'password123');
+        await screenshot('register_page');
         await page.click('button[type="submit"]');
         await page.waitForTimeout(1000);
         
-        // Sometimes it logs in automatically, sometimes requires manual login. Check if we need to login.
+        // Check if redirected to login
         if (page.url().includes('/login')) {
-            await page.fill('input[name="email"]', 'admin_e2e@test.local');
+            await page.fill('input[name="email"]', testEmail);
             await page.fill('input[name="password"]', 'password123');
             await page.click('button[type="submit"]');
             await page.waitForTimeout(1000);
@@ -58,16 +59,15 @@ const fs = require('fs');
         await screenshot('dashboard_empty');
         
         // 4. Create Product
-        let createSelector = 'a[href*="/products/create"], a[href*="/products/add"]';
+        let createSelector = 'a[href*="products/create"], a[href*="products/add"]';
         const createBtn = await page.$(createSelector);
         if (createBtn) {
             await createBtn.click();
             await page.waitForTimeout(1000);
-            await screenshot('add_product_form');
-            
             await page.fill('input[name="name"]', 'Playwright E2E Product');
-            await page.fill('input[name="sku"]', 'PW-E2E-123');
+            await page.fill('input[name="sku"]', `PW-E2E-${Date.now()}`);
             await page.fill('input[name="price"]', '499.99');
+            await screenshot('add_product_form');
             await page.click('button[type="submit"]');
             await page.waitForTimeout(1000);
             await screenshot('dashboard_with_product');
@@ -125,3 +125,5 @@ const fs = require('fs');
     await browser.close();
     console.log('Playwright E2E testing completed fully!');
 })();
+
+
